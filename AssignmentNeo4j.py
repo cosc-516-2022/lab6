@@ -4,10 +4,21 @@ from neo4j.exceptions import ServiceUnavailable
 
 class App:
 
+	uri = "neo4j+s://dffc1342.databases.neo4j.io" #"neo4j+s://<Bolt url for Neo4j Aura instance>"
+	user = "neo4j"
+	password = "oYXwXqKvX4qA2eI8g49rpMSPu27kJ0ebTNoysPVUQvc"
+
 	def __init__(self):
 		self.driver = None
 
-	def connect(self, uri, user, password):
+	def connect(self, uri=None, user=None, password=None):
+		if uri is None:
+			uri = self.uri
+		if user is None:
+			user = self.user
+		if password is None:
+			password = self.password
+		
 		# TODO : Complete Method to make a connection to the database
 		self.driver = GraphDatabase.driver(uri, auth=(user, password))
 	
@@ -16,11 +27,15 @@ class App:
 		# TODO : Complete Method to close the connection to the database
 		self.driver.close()
 
+
+	#def loadData(self)
+	
+
 	@staticmethod
 	def _return_movie_name_and_year(tx):
 		# TODO : Remove Function, contains solution
 		query = (
-			"MATCH(m:Movie) RETURN m.title as title, m.year as year"
+			"MATCH(m:Movie) RETURN m.title as title, m.year as year ORDER BY year"
 			)
 		result = tx.run(query)
 		try:
@@ -32,7 +47,7 @@ class App:
 
 	def query1(self):
 		# TODO : Write query1() to display names of all movies and the year it released. 
-		"""Display names of all movies and the year it released. 
+		"""Returns names of all movies and the year it released. 
 
 		Keyword arguments:
 		None
@@ -42,7 +57,7 @@ class App:
 		:throws: Exception if an error occurs.
 		"""
 		with self.driver.session(database="neo4j") as session:
-			result = session.execute_write(self._return_movie_name_and_year)
+			result = session.execute_read(self._return_movie_name_and_year)
 
 		return result
 
@@ -50,7 +65,7 @@ class App:
 	def _return_actor_come_directors(tx):
 		# TODO : Remove Function, contains solution
 		query = (
-			"MATCH(x:Actor)-[p:DIRECTED]->(m:Movie) return x.name as name"
+			"MATCH(x:Actor)-[p:DIRECTED]->(m:Movie) return x.name as name ORDER BY name"
 			)
 		result = tx.run(query)
 		try:
@@ -62,7 +77,7 @@ class App:
 
 	def query2(self):
 		# TODO :  Write query2() to display the names of the actors who have also directed at least one movie. 
-		"""Display names of all actors who have directed atleast one movie. 
+		"""Returns names of all actors who have directed atleast one movie. 
 
 		Keyword arguments:
 		None
@@ -72,7 +87,7 @@ class App:
 		:throws: Exception if an error occurs.
 		"""
 		with self.driver.session(database="neo4j") as session:
-			result = session.execute_write(self._return_actor_come_directors)
+			result = session.execute_read(self._return_actor_come_directors)
 
 		return result
 
@@ -92,7 +107,7 @@ class App:
 
 	def query3(self):
 		# TODO :  Write query3() to count the number of actors present in the database, who were born in Canada.  
-		"""Display total number of actors who were born in Canada. 
+		"""Returns total number of actors who were born in Canada. 
 
 		Keyword arguments:
 		None
@@ -102,55 +117,98 @@ class App:
 		:throws: Exception if an error occurs.
 		"""
 		with self.driver.session(database="neo4j") as session:
-			result = session.execute_write(self._return_num_actors_bornin_canada)
+			result = session.execute_read(self._return_num_actors_bornin_canada)
 		return int(result[0])
 
-	
-	
-
-	"""def create_friendship(self, person1_name, person2_name):
-		with self.driver.session(database="neo4j") as session:
-			# Write transactions allow the driver to handle retries and transient errors
-			result = session.execute_write(
-				self._create_and_return_friendship, person1_name, person2_name)
-			for row in result:
-				print("Created friendship between: {p1}, {p2}".format(p1=row['p1'], p2=row['p2']))
-
 	@staticmethod
-	def _create_and_return_friendship(tx, person1_name, person2_name):
-		# To learn more about the Cypher syntax, see https://neo4j.com/docs/cypher-manual/current/
-		# The Reference Card is also a good resource for keywords https://neo4j.com/docs/cypher-refcard/current/
+	def _return_user_average_rating(tx):
+		# TODO : Remove Function, contains solution
 		query = (
-			"CREATE (p1:Person { name: $person1_name }) "
-			"CREATE (p2:Person { name: $person2_name }) "
-			"CREATE (p1)-[:KNOWS]->(p2) "
-			"RETURN p1, p2"
-		)
-		result = tx.run(query, person1_name=person1_name, person2_name=person2_name)
+			"MATCH(u:User)-[r:RATED]->(m:Movie) return u.name as name,avg(r.rating) as averageRating ORDER BY averageRating DESC"
+			)
+		result = tx.run(query)
 		try:
-			return [{"p1": row["p1"]["name"], "p2": row["p2"]["name"]}
-					for row in result]
-		# Capture any errors along with the query and data for traceability
+			return [(row["name"], row["averageRating"]) for row in result]
 		except ServiceUnavailable as exception:
 			logging.error("{query} raised an error: \n {exception}".format(
 				query=query, exception=exception))
 			raise
 
-	def find_person(self, person_name):
+	def query4(self):
+		# TODO :  Write query4() to compute the average rating given (excludes reviews) by an user 
+		# for all movies sorted by descending order. 
+		"""Returns names of all users and their average rating sorted by descending order. 
+
+		Keyword arguments:
+		None
+
+		:return: list of tuples, where each tuple contains (user name, average rating)
+		:rtype: list
+		:throws: Exception if an error occurs.
+		"""
 		with self.driver.session(database="neo4j") as session:
-			result = session.execute_read(self._find_and_return_person, person_name)
-			for row in result:
-				print("Found person: {row}".format(row=row))
+			result = session.execute_read(self._return_user_average_rating)
+		return result
+	
+	@staticmethod
+	def _person_loved_movies(tx):
+		# TODO : Remove Function, contains solution
+		query = (
+			"MATCH(p:Person)-[r:REVIEWED]->(m:Movie) Where r.rating > 50 and r.summary CONTAINS 'fun' return p.name as name, m.title as title ORDER BY name"
+			)
+		result = tx.run(query)
+		try:
+			return [(row["name"], row["title"]) for row in result]
+		except ServiceUnavailable as exception:
+			logging.error("{query} raised an error: \n {exception}".format(
+				query=query, exception=exception))
+			raise
+
+	def query5(self):
+		# TODO :  Write query5() to to return person (name only) and movie name
+		# Where it's associated review (by the same person) has
+		# rating > 50 and the review has atleast one mention of the word "fun" ordered by person name (asc)
+		"""Returns names of all person and respective movies. 
+
+		Keyword arguments:
+		None
+
+		:return: list of tuples, where each tuple contains (person name, movie)
+		:rtype: list
+		:throws: Exception if an error occurs.
+		"""
+		with self.driver.session(database="neo4j") as session:
+			result = session.execute_read(self._person_loved_movies)
+		return result
 
 	@staticmethod
-	def _find_and_return_person(tx, person_name):
+	def _num_second_order_conn(tx, name):
+		# TODO : Remove Function, contains solution
 		query = (
-			"MATCH (p:Person) "
-			"WHERE p.name = $person_name "
-			"RETURN p.name AS name"
-		)
-		result = tx.run(query, person_name=person_name)
-		return [row["name"] for row in result]"""
+			"match(p:Person{name:$person_name})-[f:FOLLOWS*1]->(p1:Person) return count(*) as total"
+			)
+		result = tx.run(query, person_name=name)
+		try:
+			return [(row["total"]) for row in result]
+		except ServiceUnavailable as exception:
+			logging.error("{query} raised an error: \n {exception}".format(
+				query=query, exception=exception))
+			raise
+
+	def query6(self, name):
+		# TODO : Count the number of second order connections for a given person
+		"""Returns total number of second order connections for a given person.
+
+		Keyword arguments:
+		name : str
+
+		:return: total count
+		:rtype: int
+		:throws: Exception if an error occurs.
+		"""
+		with self.driver.session(database="neo4j") as session:
+			result = session.execute_read(self._num_second_order_conn, name)
+		return int(result[0]) 
 
 
 if __name__ == "__main__":
@@ -159,10 +217,11 @@ if __name__ == "__main__":
 	user = "neo4j"
 	password = "oYXwXqKvX4qA2eI8g49rpMSPu27kJ0ebTNoysPVUQvc"
 	app = App()
-	app.connect(uri, user, password)
+	app.connect()
 	app.query1()
 	app.query2()
 	app.query3()
-	#app.create_friendship("Alice", "David")
-	#app.find_person("Alice")
+	app.query4()
+	app.query5()
+	app.query6("Paul Blythe")
 	app.close()
