@@ -27,8 +27,63 @@ class App:
 		# TODO : Complete Method to close the connection to the database
 		self.driver.close()
 
+	@staticmethod
+	def _load1(tx):
+		# TODO : Remove Function, contains solution
+		query = (
+			"CREATE (a:Actor:Alien { bio:'Extraterrestrial', born:'1200-01-01', bornIn:'Mars', name:'ET' }) "
+			"WITH a "
+			"MATCH (m1:Movie),(m2:Movie) WHERE m1.title = 'E.T. the Extra-Terrestrial' AND m2.title = 'Jumanji' "
+			"CREATE (a)-[:ACTED_IN]->(m1) "
+			"CREATE (a)-[:ACTED_IN]->(m2) "
+			"RETURN a"
+		)
+		result = tx.run(query)
+		try:
+			return [{"a": row["a"]["name"]} for row in result]
+		# Capture any errors along with the query and data for traceability
+		except ServiceUnavailable as exception:
+			logging.error("{query} raised an error: \n {exception}".format(
+				query=query, exception=exception))
+			raise
+	
+	@staticmethod
+	def _load2(tx):
+		# TODO : Remove Function, contains solution
+		query = (
+			"MATCH (p:Person),(m:Movie) WHERE ID(p) = 34047 AND m.title = 'Jumanji' "
+			"CREATE (p)-[:ACTED_IN {rating:90, summary:'It was fun to watch in 3D'}]->(m) "
+			"RETURN p"
+		)
+		result = tx.run(query)
+		try:
+			return [{"p": row["p"]["name"]} for row in result]
+		# Capture any errors along with the query and data for traceability
+		except ServiceUnavailable as exception:
+			logging.error("{query} raised an error: \n {exception}".format(
+				query=query, exception=exception))
+			raise
 
-	#def loadData(self)
+	def loadData(self):
+		# TODO : Write function to load data as per given instructions
+		"""
+		load data as per given instructions
+
+		Keyword arguments:
+		None
+
+		:throws: Exception if an error occurs.
+		"""
+		#load 1
+		with self.driver.session(database="neo4j") as session:
+			result = session.execute_write(self._load1)
+
+		#load 2
+		with self.driver.session(database="neo4j") as session:
+			result = session.execute_write(self._load2)
+
+		#for row in result:
+		#	print(result)
 	
 
 	@staticmethod
@@ -218,6 +273,7 @@ if __name__ == "__main__":
 	password = "oYXwXqKvX4qA2eI8g49rpMSPu27kJ0ebTNoysPVUQvc"
 	app = App()
 	app.connect()
+	#app.loadData()
 	app.query1()
 	app.query2()
 	app.query3()
