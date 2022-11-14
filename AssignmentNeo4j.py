@@ -2,7 +2,7 @@ from neo4j import GraphDatabase
 import logging
 from neo4j.exceptions import ServiceUnavailable
 
-class App:
+class Neo4jApp:
 
 	uri = "neo4j+s://dffc1342.databases.neo4j.io" #"neo4j+s://<Bolt url for Neo4j Aura instance>"
 	user = "neo4j"
@@ -113,7 +113,14 @@ class App:
 		"""
 		with self.driver.session(database="neo4j") as session:
 			result = session.execute_read(self._return_movie_name_and_year)
-
+		compString = ""
+		for index,r in enumerate(result):
+			if index == 0:
+				compString = compString + "("+str(r[0])+","+str(r[1])+")"
+			else:
+				compString = compString +","+ "("+str(r[0])+","+str(r[1])+")"
+		with open("./data.txt", "w",  encoding="utf-8") as f:
+			f.write(compString)
 		return result
 
 	@staticmethod
@@ -271,13 +278,13 @@ if __name__ == "__main__":
 	uri = "neo4j+s://dffc1342.databases.neo4j.io" #"neo4j+s://<Bolt url for Neo4j Aura instance>"
 	user = "neo4j"
 	password = "oYXwXqKvX4qA2eI8g49rpMSPu27kJ0ebTNoysPVUQvc"
-	app = App()
+	app = Neo4jApp()
 	app.connect()
 	#app.loadData()
 	app.query1()
-	app.query2()
-	app.query3()
-	app.query4()
-	app.query5()
-	app.query6("Paul Blythe")
+	#app.query2()
+	#app.query3()
+	#app.query4()
+	#app.query5()
+	#app.query6("Paul Blythe")
 	app.close()
