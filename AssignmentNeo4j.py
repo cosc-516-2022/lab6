@@ -52,7 +52,7 @@ class Neo4jApp:
 		# TODO : Remove Function, contains solution
 		query = (
 			"MATCH (p:Person),(m:Movie) WHERE ID(p) = 34047 AND m.title = 'Jumanji' "
-			"CREATE (p)-[:ACTED_IN {rating:90, summary:'It was fun to watch in 3D'}]->(m) "
+			"CREATE (p)-[:REVIEWED {rating:90, summary:'It was fun to watch in 3D'}]->(m) "
 			"RETURN p"
 		)
 		result = tx.run(query)
@@ -113,6 +113,7 @@ class Neo4jApp:
 		"""
 		with self.driver.session(database="neo4j") as session:
 			result = session.execute_read(self._return_movie_name_and_year)
+		
 		compString = ""
 		for index,r in enumerate(result):
 			if index == 0:
@@ -121,13 +122,14 @@ class Neo4jApp:
 				compString = compString +","+ "("+str(r[0])+","+str(r[1])+")"
 		with open("./data.txt", "w",  encoding="utf-8") as f:
 			f.write(compString)
+			
 		return result
 
 	@staticmethod
 	def _return_actor_come_directors(tx):
 		# TODO : Remove Function, contains solution
 		query = (
-			"MATCH(x:Actor)-[p:DIRECTED]->(m:Movie) return x.name as name ORDER BY name"
+			"MATCH(x:Actor)-[p:DIRECTED]->(m:Movie) return DISTINCT x.name as name ORDER BY name"
 			)
 		result = tx.run(query)
 		try:
@@ -138,7 +140,7 @@ class Neo4jApp:
 			raise
 
 	def query2(self):
-		# TODO :  Write query2() to display the names of the actors who have also directed at least one movie. 
+		# TODO :  Write query2() to display the names of the actors who have also directed at least one movie. No Duplicates. 
 		"""Returns names of all actors who have directed atleast one movie. 
 
 		Keyword arguments:
@@ -150,6 +152,19 @@ class Neo4jApp:
 		"""
 		with self.driver.session(database="neo4j") as session:
 			result = session.execute_read(self._return_actor_come_directors)
+
+		compString = ""
+		for index,r in enumerate(result):
+			if index == 0:
+				compString = compString + "['"+ str(r) + "'"
+			else:
+				compString = compString +",'"+ str(r) +"'"
+		compString = compString + "]"
+		with open("./data.txt", "w",  encoding="utf-8") as f:
+			f.write(compString)
+		print(compString)
+
+		#print(result)
 
 		return result
 
@@ -186,8 +201,9 @@ class Neo4jApp:
 	def _return_user_average_rating(tx):
 		# TODO : Remove Function, contains solution
 		query = (
-			"MATCH(u:User)-[r:RATED]->(m:Movie) return u.name as name,avg(r.rating) as averageRating ORDER BY averageRating DESC"
+			"MATCH(u:User)-[r:RATED]->(m:Movie) WITH avg(r.rating) as averageRating, u.name as name return name, round(averageRating * 100) / 100 as averageRating ORDER BY averageRating DESC"
 			)
+
 		result = tx.run(query)
 		try:
 			return [(row["name"], row["averageRating"]) for row in result]
@@ -198,7 +214,7 @@ class Neo4jApp:
 
 	def query4(self):
 		# TODO :  Write query4() to compute the average rating given (excludes reviews) by an user 
-		# for all movies sorted by descending order. 
+		# for all movies sorted by descending order. Average rating rounded to 2 decimal places.
 		"""Returns names of all users and their average rating sorted by descending order. 
 
 		Keyword arguments:
@@ -210,13 +226,25 @@ class Neo4jApp:
 		"""
 		with self.driver.session(database="neo4j") as session:
 			result = session.execute_read(self._return_user_average_rating)
+
+		compString = ""
+		for index,r in enumerate(result):
+			if index == 0:
+				compString = compString + "[("+str(r[0])+","+str(r[1])+")"
+			else:
+				compString = compString +","+ "("+str(r[0])+","+str(r[1])+")"
+		compString = compString+"]"
+		with open("./data.txt", "w",  encoding="utf-8") as f:
+			f.write(compString)
+
+		print(compString)
 		return result
 	
 	@staticmethod
 	def _person_loved_movies(tx):
 		# TODO : Remove Function, contains solution
 		query = (
-			"MATCH(p:Person)-[r:REVIEWED]->(m:Movie) Where r.rating > 50 and r.summary CONTAINS 'fun' return p.name as name, m.title as title ORDER BY name"
+			"MATCH(p:Person)-[r:REVIEWED]->(m:Movie) Where r.rating > 50 and r.summary CONTAINS 'fun' return p.name as name, m.title as title ORDER BY name, title DESC"
 			)
 		result = tx.run(query)
 		try:
@@ -229,7 +257,7 @@ class Neo4jApp:
 	def query5(self):
 		# TODO :  Write query5() to to return person (name only) and movie name
 		# Where it's associated review (by the same person) has
-		# rating > 50 and the review has atleast one mention of the word "fun" ordered by person name (asc)
+		# rating > 50 and the review has atleast one mention of the word "fun" ordered by person name (asc), movie name (desc)
 		"""Returns names of all person and respective movies. 
 
 		Keyword arguments:
@@ -241,6 +269,8 @@ class Neo4jApp:
 		"""
 		with self.driver.session(database="neo4j") as session:
 			result = session.execute_read(self._person_loved_movies)
+
+		print(result)
 		return result
 
 	@staticmethod
@@ -270,6 +300,8 @@ class Neo4jApp:
 		"""
 		with self.driver.session(database="neo4j") as session:
 			result = session.execute_read(self._num_second_order_conn, name)
+
+		print(int(result[0]))
 		return int(result[0]) 
 
 
@@ -278,13 +310,13 @@ if __name__ == "__main__":
 	uri = "neo4j+s://dffc1342.databases.neo4j.io" #"neo4j+s://<Bolt url for Neo4j Aura instance>"
 	user = "neo4j"
 	password = "oYXwXqKvX4qA2eI8g49rpMSPu27kJ0ebTNoysPVUQvc"
-	app = Neo4jApp()
-	app.connect()
+	#app = Neo4jApp()
+	#app.connect()
 	#app.loadData()
-	app.query1()
+	#app.query1()
 	#app.query2()
 	#app.query3()
 	#app.query4()
 	#app.query5()
 	#app.query6("Paul Blythe")
-	app.close()
+	#app.close()
