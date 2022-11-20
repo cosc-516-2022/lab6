@@ -1,7 +1,7 @@
 # COSC 516 - Cloud Databases<br/>Lab 6 - AuraDB Neo4J
 
 ## Setup
-Create a free tier account at: [https://neo4j.com/cloud/platform/aura-graph-database/].
+Create a free tier account at: [https://neo4j.com/cloud/platform/aura-graph-database/](https://neo4j.com/cloud/platform/aura-graph-database/).
 
 ## Neo4j AuraDB Portal
 Create an AuraDB free account. 
